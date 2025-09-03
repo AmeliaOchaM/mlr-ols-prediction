@@ -1,6 +1,6 @@
 """
 CSV Data Scaling Script
-Reads data_cleaned.csv and scales all columns except RR
+Reads data_cleaned.csv and scales all columns including RR (with log transform)
 """
 
 import pandas as pd
@@ -19,8 +19,8 @@ class CSVDataScaler:
         self.scaled_data = None
         self.scaler = None
         
-        # Kolom yang akan diabaikan (tidak di-scale)
-        self.ignore_columns = ['RR']  
+        # No more ignored columns - RR will be transformed then scaled
+        self.ignore_columns = []  
         
         # Mapping untuk DDD_CAR (arah angin) ke nilai numerik
         self.wind_direction_mapping = {
@@ -113,11 +113,39 @@ class CSVDataScaler:
         print("Data cleaning completed!")
         return self.cleaned_data
     
+    def transform_rr(self):
+        """Transform RR using log1p"""
+        if 'RR' in self.cleaned_data.columns:
+            print("\n" + "="*50)
+            print("RR TRANSFORMATION")
+            print("="*50)
+            
+            original_rr = self.cleaned_data['RR'].copy()
+            print(f"Original RR stats:")
+            print(f"  Min: {original_rr.min():.4f}")
+            print(f"  Max: {original_rr.max():.4f}")
+            print(f"  Mean: {original_rr.mean():.4f}")
+            print(f"  Zero values: {(original_rr == 0).sum()}")
+            
+            # Apply log1p transformation
+            self.cleaned_data['RR'] = np.log1p(original_rr)
+            
+            print(f"Transformed RR (log1p) stats:")
+            print(f"  Min: {self.cleaned_data['RR'].min():.4f}")
+            print(f"  Max: {self.cleaned_data['RR'].max():.4f}")
+            print(f"  Mean: {self.cleaned_data['RR'].mean():.4f}")
+            print("RR transformation completed!")
+        else:
+            print("RR column not found - skipping transformation")
+    
     def scale_data(self, scaling_method='standard'):
-        """Scale data excluding ignored columns"""
+        """Scale data including transformed RR"""
         if self.cleaned_data is None:
             print("Data belum di-clean!")
             return
+        
+        # Transform RR before scaling
+        self.transform_rr()
         
         print("\n" + "="*50)
         print(f"DATA SCALING - {scaling_method.upper()}")
@@ -178,7 +206,10 @@ class CSVDataScaler:
                 scaled_mean = self.scaled_data[col].mean()
                 scaled_std = self.scaled_data[col].std()
                 
-                print(f"{col}: {orig_mean:.2f}±{orig_std:.2f} → {scaled_mean:.4f}±{scaled_std:.4f}")
+                if col == 'RR':
+                    print(f"{col} (log transformed): {orig_mean:.4f}±{orig_std:.4f} → {scaled_mean:.4f}±{scaled_std:.4f}")
+                else:
+                    print(f"{col}: {orig_mean:.2f}±{orig_std:.2f} → {scaled_mean:.4f}±{scaled_std:.4f}")
         
         return self.scaled_data
     
@@ -211,8 +242,8 @@ class CSVDataScaler:
 
 def main():
     """Main function"""
-    print("CSV Data Scaler")
-    print("="*30)
+    print("CSV Data Scaler with RR Transformation")
+    print("="*40)
     
     # Daftar path file input (masukkan path di sini)
     file_paths = [
@@ -235,7 +266,7 @@ def main():
         scaler = CSVDataScaler(file_path)
         
         # Process data
-        print("\n📁 Step 1: Loading data...")
+        print("\n📊 Step 1: Loading data...")
         if scaler.load_data() is None:
             continue  # Skip jika load gagal
         
@@ -245,12 +276,13 @@ def main():
         print("\n🧹 Step 3: Cleaning data...")
         scaler.clean_data()
         
-        print("\n📊 Step 4: Scaling data...")
+        print("\n📊 Step 4: Scaling data (with RR transformation)...")
         scaler.scale_data(scaling_method='standard')
         
         print("\n💾 Step 5: Saving results...")
         # Tentukan folder output
         output_dir = "./pre-prosesing/output_data"
+        os.makedirs(output_dir, exist_ok=True)
         base_name = os.path.splitext(os.path.basename(file_path))[0]
         output_filename = os.path.join(output_dir, f"{base_name}_scaled.csv")
         output_file = scaler.save_results(output_filename) 
@@ -262,10 +294,10 @@ def main():
             print(f"Input: {file_path}")
             print(f"Output: {output_file}")
             print(f"Shape: {scaler.scaled_data.shape}")
-            print(f"Ignored columns: {scaler.ignore_columns}")
+            print(f"RR transformed with log1p and scaled")
     
         print("\n" + "="*60)
-        print(f"⏭️  FINISHED PROCESSING FILE KE-{i}")
+        print(f"⭐ FINISHED PROCESSING FILE KE-{i}")
         print("="*60)
     
     # Jika semua file selesai

@@ -1,14 +1,15 @@
 """
 MLR.py - Multiple Linear Regression Prediction and Error Analysis
 Input: 1) OLS coefficients from ols_coefficients.csv
-       2) Test data from data_test.csv (X1-X6, RR)
-Output: Predictions and error metrics
+       2) Test data from data_test.csv (X1-X6, log-transformed RR)
+Output: Predictions and error metrics (converted back to original scale)
 """
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+import os
 
 class MLRPredictor:
     def __init__(self):
@@ -37,15 +38,22 @@ class MLRPredictor:
             return False
     
     def predict(self, X):
-        """Make predictions using MLR equation: ŷ = β₀ + β₁x₁ + ... + βₖxₖ"""
+        """Make predictions using MLR equation and inverse transform"""
         if self.coefficients is None:
             raise ValueError("Coefficients not loaded!")
         
         # Add intercept column
         X_with_intercept = np.column_stack([np.ones(X.shape[0]), X])
         
-        # MLR prediction
-        predictions = X_with_intercept @ self.coefficients
+        # MLR prediction in log space
+        log_predictions = X_with_intercept @ self.coefficients
+        
+        # Inverse transform from log space to original scale
+        predictions = np.expm1(log_predictions)  # exp(x) - 1
+        
+        print(f"Predictions made: {len(predictions)} samples")
+        print(f"Log space range: {log_predictions.min():.4f} to {log_predictions.max():.4f}")
+        print(f"Original scale range: {predictions.min():.4f} to {predictions.max():.4f}")
         
         return predictions
     
@@ -60,7 +68,6 @@ class MLRPredictor:
         mae = mean_absolute_error(y_true, y_pred)
         r2 = r2_score(y_true, y_pred)
         
-        # Additional metrics
         # Improved MAPE calculation handling zero values
         if np.any(y_true == 0):
             non_zero_mask = y_true != 0
@@ -89,7 +96,7 @@ class MLRPredictor:
         return error_metrics
 
 def load_test_data(file_path, target_column='RR'):
-    """Load test data from CSV"""
+    """Load test data from CSV and inverse transform RR"""
     try:
         print(f"Loading test data from: {file_path}")
         data = pd.read_csv(file_path)
@@ -103,10 +110,16 @@ def load_test_data(file_path, target_column='RR'):
             print(f"Removed {len(data) - len(clean_data)} rows with missing values")
         
         X_test = clean_data.drop(columns=[target_column]).values
-        y_test = clean_data[target_column].values
+        y_test_log = clean_data[target_column].values  # This is log-transformed
+        
+        # Inverse transform y_test back to original scale
+        y_test = np.expm1(y_test_log)  # exp(x) - 1
+        
         feature_names = list(clean_data.drop(columns=[target_column]).columns)
         
         print(f"Test data shape: {X_test.shape[0]} samples, {X_test.shape[1]} features")
+        print(f"RR inverse transformed from log space to original scale")
+        print(f"Original RR range: {y_test.min():.4f} to {y_test.max():.4f}")
         
         return X_test, y_test, feature_names
         
@@ -122,7 +135,10 @@ def display_error_analysis(error_metrics):
     # Main metrics
     for metric in ['MSE', 'RMSE', 'MAE', 'R²', 'MAPE', 'Bias']:
         value = error_metrics[metric]
-        print(f"{metric:6s}: {value:10.4f}")
+        if np.isnan(value):
+            print(f"{metric:6s}: {'NaN':>10s}")
+        else:
+            print(f"{metric:6s}: {value:10.4f}")
     
     # Residual statistics
     residuals = error_metrics['Residuals']
@@ -137,8 +153,11 @@ def create_error_visualizations(y_test, y_pred, error_metrics, save_path="./post
     """Create error analysis visualizations"""
     residuals = error_metrics['Residuals']
     
+    # Create output directory if it doesn't exist
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    fig.suptitle('MLR Error Analysis', fontsize=16, fontweight='bold')
+    fig.suptitle('MLR Error Analysis (Log-Transformed Model)', fontsize=16, fontweight='bold')
     
     # 1. Actual vs Predicted
     axes[0, 0].scatter(y_test, y_pred, alpha=0.6, color='blue')
@@ -183,6 +202,7 @@ def create_error_visualizations(y_test, y_pred, error_metrics, save_path="./post
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
+    print(f"Visualization saved to: {save_path}")
 
 def save_results(y_test, y_pred, error_metrics, output_file="mlr_results.csv"):
     """Save MLR results to CSV"""
@@ -214,7 +234,7 @@ def save_results(y_test, y_pred, error_metrics, output_file="mlr_results.csv"):
 def main():
     """Main MLR prediction and error analysis function"""
     print("="*60)
-    print("MLR PREDICTION & ERROR ANALYSIS")
+    print("MLR PREDICTION & ERROR ANALYSIS (WITH LOG TRANSFORM)")
     print("="*60)
     
     # Configuration
@@ -253,7 +273,6 @@ def main():
     print(f"\n🔮 MAKING PREDICTIONS")
     print("-" * 30)
     y_pred = mlr.predict(X_test)
-    print(f"Predictions made for {len(y_pred)} samples")
     
     # Calculate errors
     print(f"\n📈 CALCULATING ERRORS")
@@ -264,9 +283,9 @@ def main():
     display_error_analysis(error_metrics)
     
     # Show equation used
-    print(f"\n📐 MLR EQUATION USED")
+    print(f"\n📋 MLR EQUATION USED (Log Space)")
     print("-" * 30)
-    equation = f"ŷ = {mlr.coefficients[0]:.4f}"
+    equation = f"log(RR+1) = {mlr.coefficients[0]:.4f}"
     for i, feature in enumerate(expected_features):
         coef = mlr.coefficients[i+1]
         if coef >= 0:
@@ -274,6 +293,7 @@ def main():
         else:
             equation += f" - {abs(coef):.4f}×{feature}"
     print(equation)
+    print("Final prediction: RR = exp(prediction) - 1")
     
     # Create visualizations
     print(f"\n📊 GENERATING VISUALIZATIONS")
@@ -292,6 +312,7 @@ def main():
     print(f"🎯 R² Score: {error_metrics['R²']:.4f}")
     print(f"📉 RMSE: {error_metrics['RMSE']:.4f}")
     print(f"📄 Results saved to: {results_file}")
+    print("🔄 Model used log-transformed RR with inverse transformation")
     
     return mlr, error_metrics
 
