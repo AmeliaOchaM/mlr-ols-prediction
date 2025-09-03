@@ -24,14 +24,18 @@ graph TD
     D --> F[test.csv]
     E --> G[Polynomial Features - Train]
     F --> H[Polynomial Features - Test]
-    G --> I[Data Scaling - Train]
-    H --> J[Data Scaling - Test]
-    I --> K[OLS Training]
-    K --> L[train_olsCoefficients.csv]
-    L --> M[MLR Prediction]
-    J --> M
-    M --> N[mlr_error_analysis.png]
-    M --> O[test_mlr.csv]
+    G --> I[train_polynomial.csv]
+    H --> J[test_polynomial.csv]
+    I --> K[Data Scaling - Train]
+    J --> L[Data Scaling - Test]
+    K --> M[train_scaled.csv]
+    L --> N[test_scaled.csv]
+    M --> O[OLS Training]
+    O --> P[train_olsCoefficients.csv]
+    P --> Q[MLR Prediction]
+    N --> Q
+    Q --> R[mlr_error_analysis.png]
+    Q --> S[test_mlr.csv]
 ```
 
 ---
@@ -57,11 +61,25 @@ graph TD
   - Split data secara berurutan (sequential split)
   - Rasio default: 70:30 (training:testing)
 
-### **3. Data Scaling** 📏
-**File**: `pre-prosesing/scaleing.py`
+### **3. Polynomial Features** 🔢
+**File**: `pre-prosesing/polynomial_features.py`
 - **Input**: 
   - `input_data/train.csv`
   - `input_data/test.csv`
+- **Output**:
+  - `polynomial_data/train_polynomial.csv`
+  - `polynomial_data/test_polynomial.csv`
+- **Fungsi**:
+  - Membuat fitur polynomial (X₁², X₁×X₂, dll.) untuk meningkatkan kompleksitas model
+  - Degree default: 2 (quadratic features)
+  - Menangani interaksi antar variabel independent
+  - Mengonversi categorical wind direction ke numerical values
+
+### **4. Data Scaling** 📏
+**File**: `pre-prosesing/scaleing.py`
+- **Input**: 
+  - `polynomial_data/train_polynomial.csv`
+  - `polynomial_data/test_polynomial.csv`
 - **Output**:
   - `output_data/train_scaled.csv`
   - `output_data/test_scaled.csv`
@@ -70,7 +88,7 @@ graph TD
   - Formula: `(x - mean) / std`
   - Memastikan semua fitur dalam skala yang sama
 
-### **4. OLS Training** 🎯
+### **5. OLS Training** 🎯
 **File**: `prosesing/ols.py`
 - **Input**: `output_data/train_scaled.csv`
 - **Output**: `train_olsCoefficients.csv`
@@ -79,7 +97,7 @@ graph TD
   - Formula: β = (X'X)⁻¹X'y
   - Menghitung intercept dan slope untuk setiap variabel
 
-### **5. MLR Prediction & Analysis** 📈
+### **6. MLR Prediction & Analysis** 📈
 **File**: `prosesing/mlr.py`
 - **Input**: 
   - `train_olsCoefficients.csv` (koefisien model)
@@ -103,6 +121,9 @@ graph TD
 ├── 📁 input_data/
 │   ├── train.csv             # Data training (70%)
 │   └── test.csv              # Data testing (30%)
+├── 📁 polynomial_data/
+│   ├── train_polynomial.csv  # Data training dengan polynomial features
+│   └── test_polynomial.csv   # Data testing dengan polynomial features
 └── 📁 output_data/
     ├── train_scaled.csv      # Data training yang sudah di-scale
     └── test_scaled.csv       # Data testing yang sudah di-scale
@@ -137,13 +158,16 @@ python ./pre-prosesing/cleaning.py
 # 3. Data Splitting
 python ./pre-prosesing/spliting.py
 
-# 4. Data Scaling
+# 4. Polynomial Features
+python ./pre-prosesing/polynomial_features.py
+
+# 5. Data Scaling
 python ./pre-prosesing/scaleing.py
 
-# 5. OLS Training
+# 6. OLS Training
 python ./prosesing/ols.py
 
-# 6. MLR Prediction
+# 7. MLR Prediction
 python ./prosesing/mlr.py
 ```
 
