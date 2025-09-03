@@ -190,7 +190,7 @@ def main():
     # Configuration
     train_file = "./pre-prosesing/output_data/train_scaled.csv"  # Input training data
     target_col = "RR"              # Dependent variable
-    output_file = "train_olsCoefficients.csv"  # Output coefficients
+    output_file = "./prosesing/train_olsCoefficients.csv"  # Output coefficients
 
     # Display theory
     display_ols_theory()

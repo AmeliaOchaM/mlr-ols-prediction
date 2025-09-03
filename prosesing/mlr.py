@@ -61,7 +61,19 @@ class MLRPredictor:
         r2 = r2_score(y_true, y_pred)
         
         # Additional metrics
-        mape = np.mean(np.abs(residuals / y_true)) * 100  # Mean Absolute Percentage Error
+        # Improved MAPE calculation handling zero values
+        if np.any(y_true == 0):
+            non_zero_mask = y_true != 0
+            zero_count = np.sum(y_true == 0)
+            print(f"Warning: {zero_count} zero values found in target variable")
+            
+            if non_zero_mask.sum() > 0:
+                mape = np.mean(np.abs(residuals[non_zero_mask] / y_true[non_zero_mask])) * 100
+            else:
+                mape = float('nan')
+        else:
+            mape = np.mean(np.abs(residuals / y_true)) * 100
+
         bias = np.mean(residuals)  # Bias
         
         error_metrics = {
@@ -121,7 +133,7 @@ def display_error_analysis(error_metrics):
     print(f"  Max:      {np.max(residuals):8.4f}")
     print(f"  Range:    {np.max(residuals) - np.min(residuals):8.4f}")
 
-def create_error_visualizations(y_test, y_pred, error_metrics, save_path="mlr_error_analysis.png"):
+def create_error_visualizations(y_test, y_pred, error_metrics, save_path="./post-prosesing/mlr_error_analysis.png"):
     """Create error analysis visualizations"""
     residuals = error_metrics['Residuals']
     
