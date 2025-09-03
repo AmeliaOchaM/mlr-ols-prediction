@@ -247,8 +247,8 @@ def main():
     
     # Daftar path file input (masukkan path di sini)
     file_paths = [
-        "./pre-prosesing/input_data/test.csv",  # File pertama
-        "./pre-prosesing/input_data/train.csv"     # File kedua
+        "./pre-prosesing/polynomial_data/test_polynomial.csv",  # File pertama
+        "./pre-prosesing/polynomial_data/train_polynomial.csv"     # File kedua
     ]
     
     # Proses setiap file satu per satu

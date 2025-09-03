@@ -188,7 +188,7 @@ def main():
     print("="*60)
     
     # Configuration
-    train_file = "./pre-prosesing/output_data/train_scaled.csv"  # Input training data
+    train_file = "./pre-prosesing/output_data/train_polynomial_scaled.csv"  # Input training data
     target_col = "RR"              # Dependent variable
     output_file = "./prosesing/train_olsCoefficients.csv"  # Output coefficients
 

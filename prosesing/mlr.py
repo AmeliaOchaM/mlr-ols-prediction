@@ -239,7 +239,7 @@ def main():
     
     # Configuration
     coef_file = "./prosesing/train_olsCoefficients.csv"    # OLS coefficient estimates
-    test_file = "./pre-prosesing/output_data/test_scaled.csv"           # Test data
+    test_file = "./pre-prosesing/output_data/test_polynomial_scaled.csv"           # Test data
     target_col = "RR"                     # Dependent variable
     results_file = "test_mlr.csv"     # Output results
     
